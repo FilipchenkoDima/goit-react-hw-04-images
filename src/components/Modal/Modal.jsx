@@ -1,16 +1,6 @@
 import React, { Component } from 'react';
 import { Overlay, ModalWindow } from './Modal.styled';
 
-// export const Modal = ({ imgUrl }) => {
-//   return (
-//     <Overlay>
-//       <ModalWindow>
-//         <img src={imgUrl} alt="" />
-//       </ModalWindow>
-//     </Overlay>
-//   );
-// };
-
 export class Modal extends Component {
   componentDidMount() {
     window.addEventListener('keydown', this.handleKeydown);

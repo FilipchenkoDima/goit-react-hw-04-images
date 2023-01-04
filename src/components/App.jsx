@@ -16,6 +16,9 @@ export class App extends Component {
     status: 'idle',
     showModal: false,
     largeImageUrl: '',
+    page: 1,
+    query: '',
+    loadMore: null,
   };
 
   getLargeImgUrl = imgUrl => {
@@ -30,27 +33,48 @@ export class App extends Component {
   };
 
   searchResult = value => {
-    this.setState({ status: 'loading' });
-    fetchPictures(value).then(e =>
-      this.setState({
-        pictures: e.hits,
-        status: 'idle',
-      })
-    );
+    this.setState({ query: value, page: 1, pictures: [], loadMore: null });
   };
 
+  handleLoadMore = () => {
+    this.setState(prevState => ({
+      page: prevState.page + 1,
+    }));
+  };
+
+  componentDidUpdate(_, prevState) {
+    const { page, query } = this.state;
+
+    if (
+      prevState.page !== this.state.page ||
+      prevState.query !== this.state.query
+    ) {
+      this.setState({ status: 'loading' });
+
+      fetchPictures(query, page)
+        .then(e =>
+          this.setState(prevState => ({
+            pictures: [...prevState.pictures, ...e.hits],
+            status: 'idle',
+            loadMore: 12 - e.hits.length,
+          }))
+        )
+        .catch(error => console.log(error));
+    }
+  }
+
   render() {
-    const { pictures, status, showModal, largeImageUrl } = this.state;
+    const { pictures, status, showModal, largeImageUrl, loadMore } = this.state;
     return (
       <Wrapper>
         <GlobalStyle />
         <Searchbar onSubmit={this.searchResult} />
-        {status === 'loading' && <Loader />}
         {showModal && (
           <Modal imgUrl={largeImageUrl} onClose={this.toggleModal} />
         )}
         <ImageGallery pictures={pictures} onClick={this.getLargeImgUrl} />
-        {pictures.length !== 0 && <Button />}
+        {status === 'loading' && <Loader />}
+        {loadMore === 0 && <Button onClick={this.handleLoadMore} />}
       </Wrapper>
     );
   }
