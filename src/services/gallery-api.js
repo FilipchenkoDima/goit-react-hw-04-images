@@ -18,7 +18,6 @@ export const fetchPictures = async (value, page = 1) => {
     const response = await axios.get(BASE_URL, {
       params: options,
     });
-    console.log(response.data);
     return response.data;
   } catch (error) {
     console.log(error);
