@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useState, useEffect } from 'react';
 import { fetchPictures } from 'services/gallery-api';
 
 import { Searchbar } from './Searchbar/Searchbar';
@@ -10,72 +10,60 @@ import { Button } from './Button/Button';
 import GlobalStyle from 'globalStyles';
 import { Wrapper } from './Searchbar/Searchbar.styled';
 
-export class App extends Component {
-  state = {
-    pictures: [],
-    status: 'idle',
-    showModal: false,
-    largeImageUrl: '',
-    page: 1,
-    query: '',
-    loadMore: null,
+export const App = () => {
+  const [pictures, setPictures] = useState([]);
+  const [status, setStatus] = useState('idle');
+  const [showModal, setShowModal] = useState(false);
+  const [largeImageUrl, setLargeImageUrl] = useState('');
+  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState('');
+  const [loadMore, setLoadMore] = useState(null);
+
+  const getLargeImgUrl = imgUrl => {
+    setLargeImageUrl(imgUrl);
+    toggleModal();
   };
 
-  getLargeImgUrl = imgUrl => {
-    this.setState({ largeImageUrl: imgUrl });
-    this.toggleModal();
+  const toggleModal = () => {
+    setShowModal(prevState => !prevState);
   };
 
-  toggleModal = () => {
-    this.setState(state => ({
-      showModal: !state.showModal,
-    }));
+  const searchResult = value => {
+    setQuery(value);
+    setPage(1);
+    setPictures([]);
+    setLoadMore(null);
   };
 
-  searchResult = value => {
-    this.setState({ query: value, page: 1, pictures: [], loadMore: null });
+  const handleLoadMore = () => {
+    setPage(prevState => prevState + 1);
   };
 
-  handleLoadMore = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
-  };
-
-  componentDidUpdate(_, prevState) {
-    const { page, query } = this.state;
-
-    if (
-      prevState.page !== this.state.page ||
-      prevState.query !== this.state.query
-    ) {
-      this.setState({ status: 'loading' });
-
-      fetchPictures(query, page)
-        .then(e =>
-          this.setState(prevState => ({
-            pictures: [...prevState.pictures, ...e.hits],
-            status: 'idle',
-            loadMore: 12 - e.hits.length,
-          }))
-        )
-        .catch(error => console.log(error));
+  useEffect(() => {
+    if (!query) {
+      return;
     }
-  }
 
-  render() {
-    const { pictures, status, showModal, largeImageUrl, loadMore } = this.state;
-    return (
-      <Wrapper>
-        <GlobalStyle />
-        <Searchbar onSubmit={this.searchResult} />
-        {showModal && (
-          <Modal imgUrl={largeImageUrl} onClose={this.toggleModal} />
-        )}
-        <ImageGallery pictures={pictures} onClick={this.getLargeImgUrl} />
-        {status === 'loading' && <Loader />}
-        {loadMore === 0 && <Button onClick={this.handleLoadMore} />}
-      </Wrapper>
-    );
-  }
-}
+    setStatus('loading');
+    setLoadMore(null);
+
+    fetchPictures(query, page)
+      .then(e => {
+        setPictures(prevState => [...prevState, ...e.hits]);
+        setStatus('idle');
+        setLoadMore(12 - e.hits.length);
+      })
+      .catch(error => console.log(error));
+  }, [page, query]);
+
+  return (
+    <Wrapper>
+      <GlobalStyle />
+      <Searchbar onSubmit={searchResult} />
+      {showModal && <Modal imgUrl={largeImageUrl} onClose={toggleModal} />}
+      <ImageGallery pictures={pictures} onClick={getLargeImgUrl} />
+      {status === 'loading' && <Loader />}
+      {loadMore === 0 && <Button onClick={handleLoadMore} />}
+    </Wrapper>
+  );
+};
